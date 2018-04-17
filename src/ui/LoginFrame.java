@@ -75,8 +75,8 @@ public class LoginFrame extends JFrame{
 			@Override
 			public void windowClosing(WindowEvent e) {
 				try {
-					clientthread.stop();
 					socket.close();
+					clientthread.stop();
 				} catch (IOException e1) {
 					System.out.println("login  socketπÿ±’“Ï≥£");
 				}

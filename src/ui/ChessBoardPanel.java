@@ -12,13 +12,11 @@ import javax.swing.JPanel;
 import javax.swing.border.EtchedBorder;
 
 import util.Config;
-import util.Result;
 
 public class ChessBoardPanel extends JPanel {
 
-	public JPanel jp;
 	public static Config chess_config;
-	public static int GameModel = 2;// 模式，1为人机对战，2为人人对战
+	public static int GameModel = 1;// 模式，1为人人对战，2为人机对战
 	
 
 	/**
@@ -32,15 +30,43 @@ public class ChessBoardPanel extends JPanel {
 	public int[][] array_pve = new int[15][15];
 	public int count_max;
 	public int count_where = 0;
-	public JPanel panel;
-	public Result result;
+	public ResultFrame result;
 	public List list;
 	public int val;
 
 	public ChessBoardPanel() {
-		super();
 		this.initUI();
 	}
+
+	
+	
+	@Override
+	public void paint(Graphics g) {
+		g.setColor(Color.BLACK);
+		super.paint(g);
+		// 画15行
+		for (int i = 0; i < chess_config.ROW; i++) {
+			g.drawLine(20, 20 + i * chess_config.Board_distance,
+					20 + (chess_config.COLUMN - 1) * chess_config.Board_distance,
+					20 + i * chess_config.Board_distance);
+		}
+		// 画15列
+		for (int i = 0; i < chess_config.COLUMN; i++) {
+			g.drawLine(20 + i * chess_config.Board_distance, 20, 20 + i * chess_config.Board_distance,
+					20 + (chess_config.ROW - 1) * chess_config.Board_distance);
+		}
+		g.setColor(Color.BLACK);
+		g.fillOval(135, 135, 10, 10);
+		g.fillOval(295, 135, 10, 10);
+		g.fillOval(455, 135, 10, 10);
+		g.fillOval(135, 295, 10, 10);
+		g.fillOval(295, 295, 10, 10);
+		g.fillOval(455, 295, 10, 10);
+		g.fillOval(135, 455, 10, 10);
+		g.fillOval(295, 455, 10, 10);
+		g.fillOval(455, 455, 10, 10);
+	}
+
 
 	/**
 	 * 初始化棋盘界面
@@ -56,50 +82,19 @@ public class ChessBoardPanel extends JPanel {
 		 * 添加一块棋盘
 		 */
 		this.setLayout(null);
-		JPanel jp = new JPanel() {
-			@Override
-			public void paint(Graphics g) {
-				g.setColor(Color.BLACK);
-				super.paint(g);
-				// 画15行
-				for (int i = 0; i < chess_config.ROW; i++) {
-					g.drawLine(20, 20 + i * chess_config.Board_distance,
-							20 + (chess_config.COLUMN - 1) * chess_config.Board_distance,
-							20 + i * chess_config.Board_distance);
-				}
-				// 画15列
-				for (int i = 0; i < chess_config.COLUMN; i++) {
-					g.drawLine(20 + i * chess_config.Board_distance, 20, 20 + i * chess_config.Board_distance,
-							20 + (chess_config.ROW - 1) * chess_config.Board_distance);
-				}
-				g.setColor(Color.BLACK);
-				g.fillOval(135, 135, 10, 10);
-				g.fillOval(295, 135, 10, 10);
-				g.fillOval(455, 135, 10, 10);
-				g.fillOval(135, 295, 10, 10);
-				g.fillOval(295, 295, 10, 10);
-				g.fillOval(455, 295, 10, 10);
-				g.fillOval(135, 455, 10, 10);
-				g.fillOval(295, 455, 10, 10);
-				g.fillOval(455, 455, 10, 10);
-
-			}
-		};
-		jp.setBackground(new Color(209, 167, 78));
-//		jp.setSize(602, 602);
-		jp.setBounds((Config.Chess_width-602)/2, (Config.Chess_high-602)/2, 602, 602);
-		this.add(jp);
+		this.setBackground(new Color(209, 167, 78));
+		this.setBounds((Config.Chess_width-602)/2, (Config.Chess_high-602)/2, 602, 602);
 		this.setBorder(new EtchedBorder(EtchedBorder.RAISED));
 
 		this.setVisible(true);
-		g = jp.getGraphics();
+		g = getGraphics();
 		
-		
+		System.out.println("g:"+g);
 		/**
 		 * 添加监听器
 		 * 
 		 */
-		jp.addMouseListener(new MouseListener() {
+		addMouseListener(new MouseListener() {
 
 			@Override
 			public void mouseReleased(MouseEvent e) {
@@ -132,10 +127,10 @@ public class ChessBoardPanel extends JPanel {
 						}
 
 						if (Win(getXY(y), getXY(x)) == 1) {
-							result = new Result(1);
+							result = new ResultFrame(1);
 							result.initUI();
 						} else if (Win(getXY(y), getXY(x)) == -1) {
-							result = new Result(-1);
+							result = new ResultFrame(-1);
 							result.initUI();
 						}
 						for (int i = 0; i < 15; i++) {
@@ -312,11 +307,13 @@ public class ChessBoardPanel extends JPanel {
 	}
 
 	public static void main(String[] args) {
+		
 		JFrame jf = new JFrame("五子棋");
 		jf.add(new ChessBoardPanel());
 		jf.setVisible(true);
 		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		jf.setSize(Config.Chess_width, Config.Chess_high);
+	
 
 	}
 

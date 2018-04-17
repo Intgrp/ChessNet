@@ -1,4 +1,4 @@
-package util;
+package ui;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -11,13 +11,11 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import ui.ChessBoardPanel;
-
-public class Result extends JFrame{  
+public class ResultFrame extends JFrame{  
 	public JFrame jf ;
     public int i;  
     public JPanel panel;  
-    public Result(int i){  
+    public ResultFrame(int i){  
         this.i = i;  
     }  
       

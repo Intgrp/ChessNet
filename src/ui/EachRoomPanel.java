@@ -17,7 +17,8 @@ public class EachRoomPanel extends JPanel {
 	public JButton btn_right_user;
 	public JButton btn_table;
 	public ImageIcon icon_desk = new ImageIcon("E:\\workspace\\eclipse-workspace\\ChessNet\\src\\resources\\desk.png");  
-	public ImageIcon icon_person = new ImageIcon("E:\\workspace\\eclipse-workspace\\ChessNet\\src\\resources\\person.png");  
+	public ImageIcon icon_person = new ImageIcon("E:\\workspace\\eclipse-workspace\\ChessNet\\src\\resources\\person.png"); 
+	public ImageIcon icon_select = new ImageIcon("E:\\workspace\\eclipse-workspace\\ChessNet\\src\\resources\\face.png");
 	
 	public EachRoomPanel() {
 		setLayout(new FlowLayout());
@@ -129,6 +130,7 @@ public class EachRoomPanel extends JPanel {
 			public void actionPerformed(ActionEvent e) {
 				System.out.println(btn_table.getText() + "btn_left_user");
 				mui.mainUIThread.sendMessage("/room "+btn_table.getText()+" "+mui.name+" null");
+				mui.mainUIThread.sendMessage("/mainui allonline");
 			}
 		});
 		
@@ -138,6 +140,7 @@ public class EachRoomPanel extends JPanel {
 			public void actionPerformed(ActionEvent e) {
 				System.out.println(btn_table.getText() + "btn_right_user");
 				mui.mainUIThread.sendMessage("/room "+btn_table.getText()+" "+"null "+mui.name);
+				mui.mainUIThread.sendMessage("/mainui allonline");
 			}
 		});
 		
@@ -147,6 +150,7 @@ public class EachRoomPanel extends JPanel {
 			public void actionPerformed(ActionEvent e) {
 				System.out.println(btn_table.getText() + "btn_table");
 				mui.mainUIThread.sendMessage("/room "+btn_table.getText()+" "+"null "+mui.name);
+				mui.mainUIThread.sendMessage("/mainui allonline");
 			}
 		});
 		

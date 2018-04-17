@@ -11,7 +11,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 public class RoomPanel extends JPanel implements ActionListener{
-	EachRoomPanel[] eachRoomPanels = new EachRoomPanel[8*5];
+	public EachRoomPanel[] eachRoomPanels = new EachRoomPanel[8*5];
 	
 	public RoomPanel() {
 		setBackground(new Color(5, 67, 108));

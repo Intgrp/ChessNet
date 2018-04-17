@@ -53,6 +53,46 @@ public class ChessBottomPanel extends JPanel {
 			}
 		});
 	}
+	
+	public ChessBottomPanel(MainUIFrame mui, JFrame jf) {
+		setLayout(new FlowLayout(FlowLayout.CENTER,50,20));
+		setSize(Config.Chess_width, 100);
+		btn_fail = new JButton("认输");
+		btn_prepare = new JButton("准备");
+		btn_exit = new JButton("退出");
+		add(btn_fail);
+		add(btn_prepare);
+		add(btn_exit);
+		
+		btn_fail.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
+		
+		btn_prepare.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
+		
+		btn_exit.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				jf.setVisible(false);
+				jf.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+				mui.mframe.setVisible(true);
+//				mui.mainUIThread.sendMessage("/roomleave "+jf.);
+			}
+		});
+	}
 
 	public static void main(String[] args) {
 		JFrame jf = new JFrame("tttt");

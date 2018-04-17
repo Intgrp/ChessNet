@@ -19,6 +19,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.StringTokenizer;
 
 import javax.swing.JButton;
@@ -69,7 +70,7 @@ class ServerThread extends Thread {
 
 	Hashtable<String, String> chessPeerHash;// 对弈的两个客户端用户名的映射
 	
-	Hashtable<String, String> room;//每个房间的对弈情况，key为房间号，value为 客户端1 客户端2，空格隔开
+	Hashtable<String, String> roomHash;//每个房间的对弈情况，key为房间号，value为 客户端1 客户端2，空格隔开
 
 	MessageServerPanel server;
 
@@ -80,13 +81,13 @@ class ServerThread extends Thread {
 	 */
 	ServerThread(Socket clientSocket, Hashtable<Socket, DataOutputStream> clientDataHash,
 			Hashtable<Socket, String> clientNameHash, Hashtable<String, String> chessPeerHash,
-			Hashtable<String, String> room,
+			Hashtable<String, String> roomHash,
 			MessageServerPanel server) {
 		this.clientSocket = clientSocket;
 		this.clientDataHash = clientDataHash;
 		this.clientNameHash = clientNameHash;
 		this.chessPeerHash = chessPeerHash;
-		this.room = room;
+		this.roomHash = roomHash;
 		this.server = server;
 	}
 
@@ -130,6 +131,10 @@ class ServerThread extends Thread {
 			if (opera.equals("allonline")) {
 				//如果是要获取所有用户列表的命令，广播在线用户
 				firstCome();
+				//函数处理后输出为 /mainui 桌号,user1,user2 桌号,user3,user4
+				String roomUserlist = getRoomList();
+				System.out.println(roomUserlist);
+				publicTalk(roomUserlist);
 			}
 		}
 		//客户端选择了一个房间，服务器将其记录占用位置，并广播给所有用户最新的房间情况
@@ -139,29 +144,29 @@ class ServerThread extends Thread {
 			String leftUser = mm[1];
 			String rightUser = mm[2];
 			//如果该房间还没有人，则直接加入房间，另一个位置置为"null"
-			if (!room.containsKey(roomId)) {
-				synchronized (room) {
-					room.put(roomId, leftUser+" "+ rightUser);
+			if (!roomHash.containsKey(roomId)) {
+				synchronized (roomHash) {
+					roomHash.put(roomId, leftUser+","+ rightUser);//key为房间号,value为格式 user1,user2 的形式
 				}
 				Feedback("/room ok");
 			}else{//如果有人
-				String [] users = room.get(roomId).split(" ");
-				if ((users[0]!="null" && users[1]!="null") ||
-						(leftUser!="null" && users[0]!="null") || 
-						(rightUser!="null" && users[1]!="null")) {
+				String [] users = roomHash.get(roomId).split(",");
+				if ((!users[0].equals("null") && !users[1].equals("null")) ||
+						(!leftUser.equals("null") && !users[0].equals("null")) || 
+						(!rightUser.equals("null") && !users[1].equals("null"))) {
 					//该房间位置有人了，且房间有两个人，或者有人的位置和用户选的位置一样，则出错
 					Feedback("/room error");
 				}
 				//用户占领的左位置正好没人，另一个位置没人(因为上一个已经把两个都有人的用了，所以这个就肯定是只有一个有人
-				else if ((leftUser != "null" && users[0]=="null" ) ) {//如果左边没人
-					synchronized (room) {
-						room.replace(roomId, users[0]+" "+users[1],  leftUser+" "+  users[1]);
+				else if ((!leftUser .equals("null") && users[0].equals("null")) ) {//如果左边没人
+					synchronized (roomHash) {
+						roomHash.replace(roomId, users[0]+","+users[1],  leftUser+","+  users[1]);
 					}
 					Feedback("/room ok");
 				}
-				else if (rightUser!="null" && users[1]=="null") {//如果右边没人
-					synchronized (room) {
-						room.replace(roomId, users[0]+" "+users[1],  users[0]+" "+  rightUser);
+				else if (!rightUser.equals("null") && users[1].equals("null")) {//如果右边没人
+					synchronized (roomHash) {
+						roomHash.replace(roomId, users[0]+","+users[1],  users[0]+","+  rightUser);
 					}
 					Feedback("/room ok");
 				}
@@ -265,6 +270,22 @@ class ServerThread extends Thread {
 			}
 		}
 
+	}
+	
+	/**
+	 * 获取在线房间情况，输出格式为/mainui 桌号,user1,user2 桌号,user1,user2
+	 * 桌号key对应的value本身就是user1,user2的格式
+	 */
+	public String getRoomList() {
+		String roomUserList = "/mainui";
+		
+		//利用循环遍历出key和value  
+        Iterator<String> itr = roomHash.keySet().iterator();  
+        while (itr.hasNext()){  
+            String roomId = (String)itr.next();  
+            roomUserList = roomUserList + " "+roomId+","+roomHash.get(roomId);
+        }  
+		return roomUserList;
 	}
 
 	/**

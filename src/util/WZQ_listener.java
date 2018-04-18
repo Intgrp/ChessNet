@@ -9,7 +9,7 @@ import java.util.List;
 import javax.swing.JPanel;
 
 import ui.ResultFrame;
-import ui.ChessBoardPanel;
+import ui.EachRoomFrame;
 import ui.ResultFrame;
 import util.Config;
 
@@ -46,7 +46,7 @@ public class WZQ_listener extends MouseAdapter{
         /* 
          * 判定为人人对战 
          */  
-        if (ChessBoardPanel.GameModel == 1) {  
+        if (EachRoomFrame.GameModel == 1) {  
             if (x < 582 && x >= 0 && y < 582 && y >= 0) {  
                 if (state && array[x][y] == null) {  
                     g.setColor(Color.BLACK);  
@@ -91,7 +91,7 @@ public class WZQ_listener extends MouseAdapter{
         /* 
          * 人机对战 
          */  
-        else if (ChessBoardPanel.GameModel == 2) {  
+        else if (EachRoomFrame.GameModel == 2) {  
             if (x < 582 && x > 10 && y < 582 && y > 10 && array[x][y] == null) {  
                 g.setColor(Color.BLACK);  
                 g.fillOval(x - Config.Chess_size / 2, y  

@@ -9,7 +9,6 @@ import javax.swing.JFrame;
 
 import org.shan.chesspanel.ChessPanel;
 
-import ui.ChessBoardPanel;
 import ui.EachRoomFrame;
 import ui.LoginFrame;
 import ui.MainUIFrame;

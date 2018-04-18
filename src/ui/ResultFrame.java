@@ -53,7 +53,7 @@ public class ResultFrame extends JFrame{
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				jf.dispose();
-				new ChessBoardPanel();
+				new EachRoomFrame();
 			}
 		});  
         btn_exit.addActionListener(new ActionListener() {

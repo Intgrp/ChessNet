@@ -23,6 +23,7 @@ public class MainUIFrame extends JFrame implements ActionListener{
 	DataInputStream inData;
 	DataOutputStream outData;
 	public String name="";
+	public String roomId = "";
 	
 	public MainUIThread mainUIThread ;
 	

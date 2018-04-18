@@ -18,24 +18,30 @@ import java.io.ObjectOutputStream.PutField;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.StringTokenizer;
+import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.UIManager;
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane.IconifyAction;
 
 import org.jvnet.substance.SubstanceLookAndFeel;
 import org.jvnet.substance.skin.SubstanceOfficeBlue2007LookAndFeel;
+
+import contrib.ch.randelshofer.quaqua.colorchooser.Crayons;
 
 /**
  * 显示服务器及用户信息的Panel类
  */
 class MessageServerPanel extends Panel {
-	TextArea messageBoard = new TextArea("", 22, 50,
-			TextArea.SCROLLBARS_VERTICAL_ONLY);
+	TextArea messageBoard = new TextArea("", 22, 50, TextArea.SCROLLBARS_VERTICAL_ONLY);
 
 	JLabel statusLabel = new JLabel("当前连接数:", Label.LEFT);
 
@@ -68,9 +74,13 @@ class ServerThread extends Thread {
 
 	Hashtable<Socket, String> clientNameHash;// Socket与用户名的映射
 
-	Hashtable<String, String> chessPeerHash;// 对弈的两个客户端用户名的映射
-	
-	Hashtable<String, String> roomHash;//每个房间的对弈情况，key为房间号，value为 客户端1 客户端2，空格隔开
+	Hashtable<String, String> chessPeerHash;// 对弈的两个客户端用户名的映射,正在下棋，则放进去。这里面没用
+
+	// 每个房间的对弈情况，key为房间号，value为 客户端1，客户端2，逗号隔开
+	//为正在对战的列表，如果进来时有空的，则直接进入对战人员，如果不空，则进入观战列表
+	Hashtable<String, String> roomHash;
+
+	ConcurrentHashMap<String, Vector<String>> roomUserList;// 记录每个房间进去了的人列表格式为： 房间号 用户列表
 
 	MessageServerPanel server;
 
@@ -81,13 +91,14 @@ class ServerThread extends Thread {
 	 */
 	ServerThread(Socket clientSocket, Hashtable<Socket, DataOutputStream> clientDataHash,
 			Hashtable<Socket, String> clientNameHash, Hashtable<String, String> chessPeerHash,
-			Hashtable<String, String> roomHash,
+			Hashtable<String, String> roomHash, ConcurrentHashMap<String, Vector<String>> roomUserList,
 			MessageServerPanel server) {
 		this.clientSocket = clientSocket;
 		this.clientDataHash = clientDataHash;
 		this.clientNameHash = clientNameHash;
 		this.chessPeerHash = chessPeerHash;
 		this.roomHash = roomHash;
+		this.roomUserList = roomUserList;
 		this.server = server;
 	}
 
@@ -95,23 +106,24 @@ class ServerThread extends Thread {
 	 * 对客户端发来的消息处理的函数，处理后转发回客户端。处理消息的过程比较复杂， 要针对很多种情况分别处理。
 	 */
 	public void messageTransfer(String message) {
-		System.out.println("收到消息，信息为："+message);
-		String clientName ,peerName;
-		//登录，确认是否已经有人占用了这个昵称
+		System.out.println("收到消息，信息为：" + message);
+		String clientName, peerName;
+		/**
+		 *  登录，确认是否已经有人占用了这个昵称
+		 */
 		if (message.startsWith("/login ")) {
 			clientName = message.substring("/login ".length());
 			System.out.println(clientName);
-			if (clientNameHash.containsValue(clientName)) {
-				//如果已经存在该用户，则出现冲突，不能用这个用户名
-				//因为用户名冲突，所以通过clientDataHash表，从连接时就记录的数据流来查找这个用户端，返回其错误信号
-				Feedback("/login error");//该函数是通过clientDataHash找到自己的socket，返回数据
-				//peerTalk(clientName,"/login error");
-			}else {
-				//否则，顺利记录该用户进用户列表
+			if (clientName.equals("") || clientNameHash.containsValue(clientName)) {
+				// 如果已经存在该用户，则出现冲突，不能用这个用户名
+				// 因为用户名冲突，所以通过clientDataHash表，从连接时就记录的数据流来查找这个用户端，返回其错误信号
+				Feedback("/login error");// 该函数是通过clientDataHash找到自己的socket，返回数据
+				// peerTalk(clientName,"/login error");
+			} else {
+				// 否则，顺利记录该用户进用户列表
 				DataOutputStream outData = null;
 				try {
-					outData = new DataOutputStream(clientSocket
-							.getOutputStream());
+					outData = new DataOutputStream(clientSocket.getOutputStream());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -122,58 +134,167 @@ class ServerThread extends Thread {
 					clientNameHash.put(clientSocket, message.substring("/login ".length()));
 				}
 				Feedback("/login ok");
-//				peerTalk(clientName,"/login ok");//选择对象发送消息
+				// peerTalk(clientName,"/login ok");//选择对象发送消息
 			}
 		}
-		//有成员登录成功，群发最新用户列表给客户端更新用户列表
-		else if (message.startsWith("/mainui ")){
-			String opera=message.substring("/mainui ".length());
+		/**
+		 * 有成员登录成功，群发最新用户列表给客户端更新用户列表
+		 */
+		else if (message.startsWith("/mainui ")) {
+			String opera = message.substring("/mainui ".length());
 			if (opera.equals("allonline")) {
-				//如果是要获取所有用户列表的命令，广播在线用户
+				// 如果是要获取所有用户列表的命令，广播在线用户
 				firstCome();
-				//函数处理后输出为 /mainui 桌号,user1,user2 桌号,user3,user4
+				// 函数处理后输出为 /mainui 桌号,user1,user2 桌号,user3,user4
 				String roomUserlist = getRoomList();
-				System.out.println(roomUserlist);
+				System.out.println("服务器端roomUserlist："+roomUserlist);
 				publicTalk(roomUserlist);
 			}
 		}
-		//客户端选择了一个房间，服务器将其记录占用位置，并广播给所有用户最新的房间情况
+		/**
+		 *  客户端选择了一个房间，服务器将其记录占用位置，并广播给所有用户最新的房间情况
+		 */
 		else if (message.startsWith("/room ")) {
-			String []mm = message.substring("/room ".length()).split(" ");
+			String[] mm = message.substring("/room ".length()).split(" ");
+			System.out.println("/room 分割后的数组："+mm[0]+","+mm[1]+","+mm[2]);
 			String roomId = mm[0];
 			String leftUser = mm[1];
 			String rightUser = mm[2];
-			//如果该房间还没有人，则直接加入房间，另一个位置置为"null"
+
+			// 如果该房间还没有人，则直接加入房间，另一个位置置为"null"
 			if (!roomHash.containsKey(roomId)) {
 				synchronized (roomHash) {
-					roomHash.put(roomId, leftUser+","+ rightUser);//key为房间号,value为格式 user1,user2 的形式
+					roomHash.put(roomId, leftUser + "," + rightUser);// key为房间号,value为格式 user1,user2 的形式
 				}
 				Feedback("/room ok");
-			}else{//如果有人
-				String [] users = roomHash.get(roomId).split(",");
-				if ((!users[0].equals("null") && !users[1].equals("null")) ||
-						(!leftUser.equals("null") && !users[0].equals("null")) || 
-						(!rightUser.equals("null") && !users[1].equals("null"))) {
-					//该房间位置有人了，且房间有两个人，或者有人的位置和用户选的位置一样，则出错
-					Feedback("/room error");
-				}
-				//用户占领的左位置正好没人，另一个位置没人(因为上一个已经把两个都有人的用了，所以这个就肯定是只有一个有人
-				else if ((!leftUser .equals("null") && users[0].equals("null")) ) {//如果左边没人
-					synchronized (roomHash) {
-						roomHash.replace(roomId, users[0]+","+users[1],  leftUser+","+  users[1]);
+			} else {// 如果有人
+				String[] users = roomHash.get(roomId).split(",");
+				if (!users[0].equals("null") && !users[1].equals("null")) {
+					// 该房间位置有人了，且房间有两个人，则进入观战模式
+					Feedback("/room occupy");
+				} else {// 如果房间只有一个人，则自动占领 空的位置
+					if (users[0].equals("null")) {
+						synchronized (roomHash) {
+							String tmp = (leftUser.equals("null") ? rightUser : leftUser) + "," + users[1];
+							roomHash.replace(roomId, users[0] + "," + users[1], tmp);
+							Feedback("/room ok");
+						}
+					} else {
+						synchronized (roomHash) {
+							String tmp = users[0] + "," + (leftUser.equals("null") ? rightUser : leftUser);
+							roomHash.replace(roomId, users[0] + "," + users[1], tmp);
+							Feedback("/room ok");
+						}
 					}
-					Feedback("/room ok");
 				}
-				else if (!rightUser.equals("null") && users[1].equals("null")) {//如果右边没人
-					synchronized (roomHash) {
-						roomHash.replace(roomId, users[0]+","+users[1],  users[0]+","+  rightUser);
+			}
+			//向其他用户更新各个桌子的用户情况
+			publicTalk(getRoomList());
+			
+			// 不管房间有没有人，先加入房间用户列表
+			if (!roomUserList.containsKey(roomId)) {
+				synchronized (roomUserList) {
+					Vector<String> roomVector = new Vector<String>();
+					roomUserList.put(roomId, roomVector);
+				}
+			}
+			
+			Vector<String> tmp = roomUserList.get(roomId);
+			synchronized (roomUserList) {
+				String uuser ="";
+				if (leftUser!=null && !"null".equals(leftUser))
+					uuser=leftUser;
+				else if (rightUser!=null && !"null".equals(rightUser))
+					uuser = rightUser;
+				System.out.println("uuser:"+uuser);
+				if (roomUserList!=null) {
+					System.out.println("roomUserList="+roomUserList);
+					System.out.println("roomUserList.get(roomId)="+roomUserList.get(roomId).toString());
+					synchronized (roomUserList) {
+						roomUserList.get(roomId).add(uuser);
 					}
-					Feedback("/room ok");
+					
+				}
+			}
+			String outMesg = getRoomUserList(roomId);
+			// 并且对该房间的所有用户更新用户列表
+			Iterator<String> iterator = tmp.iterator();
+			while (iterator.hasNext()) {
+				//向该房间的用户广播房间用户列表
+				peerTalk(iterator.next(), outMesg);
+			}
+		}
+		/**
+		 *  如果进入房间的用户离开房间 格式为 /leaveroom 房间号 user
+		 *  需要广播给各个客户端最新房间信息
+		 */
+		else if (message.startsWith("/leaveroom ")) {
+			String[] mm = message.substring("/leaveroom ".length()).split(" ");
+			System.out.println("/leaveroom 分割后的数组："+mm[0]+","+mm[1]);
+			String roomId = mm[0];
+			String leaveName = mm[1];
+			Vector<String> tmp = roomUserList.get(roomId);
+			System.out.println("判断vector是否为空:"+tmp);
+			System.out.println("判断该房间用户信息："+tmp.toString());
+			synchronized (tmp) {
+				tmp.remove(leaveName);
+				System.out.println("删除后的用户信息tmp="+tmp.toString());
+			}
+			Iterator<String> iterator = tmp.iterator();
+			//向该房间用户发送更新的用户列表
+			String outMesg = getRoomUserList(roomId);
+			iterator = tmp.iterator();
+			while (iterator.hasNext()) {
+				//向该房间内的用户广播房间用户列表
+				peerTalk(iterator.next(), outMesg);
+			}
+			//向MainUI主窗口广播，如果你是该房间的下棋着，则退出后该房间少了一人，故要广播说这个房间少一人
+			//如果不是，则不用广播
+			String[] userlist = roomHash.get(roomId).split(",");
+			synchronized(roomHash) {
+				if (userlist[0].equals(leaveName)) {
+					userlist[0]="null";
+				}
+				else if (userlist[1].equals(leaveName)) {
+					userlist[1]="null";
+				}
+				roomHash.replace(roomId, userlist[0]+","+userlist[1]);
+			}
+			publicTalk(getRoomList());
+		}
+		/**
+		 * 返回观战的用户列表
+		 * 请求格式：/eachroomuserlist 房间号
+		 * 返回格式：/eachroomuserlist user1 user2 user3
+		 */
+		else if (message.startsWith("/eachroomuserlist ")){
+			//格式为：/eachroomuserlist 房间号
+			String result = message.substring("/eachroomuserlist ".length());
+			if (result!=null && !result.equals("")) {
+				Iterator<String>tmp = roomUserList.get(result).iterator();
+				String outMesg = getRoomUserList(result);
+				System.out.println("服务端，消息/eachroomuserlist的getRoomUserList的结果"+outMesg);
+				while (tmp.hasNext()) {
+					peerTalk(tmp.next(), outMesg);
 				}
 			}
 		}
-		
-		
+		/**
+		 * 返回正在对弈的双方信息
+		 * 请求格式：/compete 房间号
+		 * 返回格式：/compete user1 user2
+		 */
+		else if (message.startsWith("/compete ")) {
+			String result = message.substring("/compete ".length());
+			String[] competeUser = roomHash.get(result).split(",");
+			if (result!=null && !result.equals("")) {
+				Iterator<String>tmp = roomUserList.get(result).iterator();
+				String outMesg = "/compete "+competeUser[0]+" "+ competeUser[1];
+				while (tmp.hasNext()) {
+					peerTalk(tmp.next(), outMesg);
+				}
+			}
+		}
 	}
 
 	/**
@@ -182,8 +303,7 @@ class ServerThread extends Thread {
 	public void publicTalk(String publicTalkMessage) {
 
 		synchronized (clientDataHash) {
-			for (Enumeration<DataOutputStream> enu = clientDataHash.elements(); enu
-					.hasMoreElements();) {
+			for (Enumeration<DataOutputStream> enu = clientDataHash.elements(); enu.hasMoreElements();) {
 				DataOutputStream outData = (DataOutputStream) enu.nextElement();
 				try {
 					outData.writeUTF(publicTalkMessage);
@@ -200,16 +320,14 @@ class ServerThread extends Thread {
 	 */
 	public boolean peerTalk(String peerTalk, String talkMessage) {
 		//
-		System.out.println("发送给用户"+peerTalk+"消息为："+talkMessage);
+		System.out.println("发送给用户" + peerTalk + "消息为：" + talkMessage);
 		for (Enumeration<Socket> enu = clientDataHash.keys(); enu.hasMoreElements();) {
 			Socket userClient = (Socket) enu.nextElement();
 			// 找到发送消息的对象，获取它的输出流以发送消息
 			if (peerTalk.equals((String) clientNameHash.get(userClient))
-					&& !peerTalk.equals((String) clientNameHash
-							.get(clientSocket))) {
+					&& !peerTalk.equals((String) clientNameHash.get(clientSocket))) {
 				synchronized (clientDataHash) {
-					DataOutputStream peerOutData = (DataOutputStream) clientDataHash
-							.get(userClient);
+					DataOutputStream peerOutData = (DataOutputStream) clientDataHash.get(userClient);
 					try {
 						peerOutData.writeUTF(talkMessage);
 					} catch (IOException es) {
@@ -239,11 +357,9 @@ class ServerThread extends Thread {
 			Socket userClient = (Socket) enu.nextElement();
 
 			if (chessPeerTalk.equals((String) clientNameHash.get(userClient))
-					&& !chessPeerTalk.equals((String) clientNameHash
-							.get(clientSocket))) {
+					&& !chessPeerTalk.equals((String) clientNameHash.get(clientSocket))) {
 				synchronized (clientDataHash) {
-					DataOutputStream peerOutData = (DataOutputStream) clientDataHash
-							.get(userClient);
+					DataOutputStream peerOutData = (DataOutputStream) clientDataHash.get(userClient);
 					try {
 						peerOutData.writeUTF(chessTalkMessage);
 					} catch (IOException es) {
@@ -261,8 +377,7 @@ class ServerThread extends Thread {
 	 */
 	public void Feedback(String feedbackString) {
 		synchronized (clientDataHash) {
-			DataOutputStream outData = (DataOutputStream) clientDataHash
-					.get(clientSocket);
+			DataOutputStream outData = (DataOutputStream) clientDataHash.get(clientSocket);
 			try {
 				outData.writeUTF(feedbackString);
 			} catch (Exception eb) {
@@ -271,20 +386,20 @@ class ServerThread extends Thread {
 		}
 
 	}
-	
+
 	/**
 	 * 获取在线房间情况，输出格式为/mainui 桌号,user1,user2 桌号,user1,user2
 	 * 桌号key对应的value本身就是user1,user2的格式
 	 */
 	public String getRoomList() {
 		String roomUserList = "/mainui";
-		
-		//利用循环遍历出key和value  
-        Iterator<String> itr = roomHash.keySet().iterator();  
-        while (itr.hasNext()){  
-            String roomId = (String)itr.next();  
-            roomUserList = roomUserList + " "+roomId+","+roomHash.get(roomId);
-        }  
+
+		// 利用循环遍历出key和value
+		Iterator<String> itr = roomHash.keySet().iterator();
+		while (itr.hasNext()) {
+			String roomId = (String) itr.next();
+			roomUserList = roomUserList + " " + roomId + "," + roomHash.get(roomId);
+		}
 		return roomUserList;
 	}
 
@@ -301,6 +416,20 @@ class ServerThread extends Thread {
 	}
 
 	/**
+	 * 获取该房间所有在线用户
+	 */
+	public String getRoomUserList(String roomId) {
+		Vector<String> tmp = roomUserList.get(roomId);
+		// 并且对该房间的所有用户更新用户列表
+		Iterator<String> iterator = tmp.iterator();
+		String outMesg = "/eachroomuserlist";
+		while (iterator.hasNext()) {
+			outMesg = outMesg + " " + iterator.next();
+		}
+		return outMesg;
+	}
+
+	/**
 	 * 给出HashTable和值对象，获取相对应得键值的函数。
 	 */
 	public Object getHashKey(Hashtable<String, String> targetHash, Object hashValue) {
@@ -312,14 +441,14 @@ class ServerThread extends Thread {
 		}
 		return (null);
 	}
-	
+
 	/**
 	 * 用于在软件刚登陆的时候把所有的在线用户列表给显示出来
 	 */
 	public void firstCome() {
 		publicTalk(getUserList());
-//		Feedback("/yourname " + (String) clientNameHash.get(clientSocket));
-//		Feedback("Java五子棋聊天客户端");	
+		// Feedback("/yourname " + (String) clientNameHash.get(clientSocket));
+		// Feedback("Java五子棋聊天客户端");
 	}
 
 	/**
@@ -333,8 +462,7 @@ class ServerThread extends Thread {
 				chessPeerHash.remove((String) clientNameHash.get(clientSocket));
 			}
 			if (chessPeerHash.containsValue(clientNameHash.get(clientSocket))) {
-				chessPeerHash.put((String) getHashKey(chessPeerHash,
-						(String) clientNameHash.get(clientSocket)),
+				chessPeerHash.put((String) getHashKey(chessPeerHash, (String) clientNameHash.get(clientSocket)),
 						"tobeclosed");
 			}
 		}
@@ -353,6 +481,7 @@ class ServerThread extends Thread {
 		try {
 			clientSocket.close();
 		} catch (IOException exx) {
+			exx.printStackTrace();
 		}
 
 		isClientClosed = true;
@@ -366,7 +495,7 @@ class ServerThread extends Thread {
 		}
 		try {
 			inData = new DataInputStream(clientSocket.getInputStream());
-//			firstCome();
+			// firstCome();
 			while (true) {
 				String message = inData.readUTF();
 				messageTransfer(message);
@@ -403,10 +532,11 @@ public class ChessServer extends Frame implements ActionListener {
 	Hashtable<Socket, String> clientNameHash = new Hashtable<Socket, String>(50);
 
 	Hashtable<String, String> chessPeerHash = new Hashtable<String, String>(50);
-	Hashtable<String, String> room = new Hashtable<String, String>(50);//每个房间的对弈情况，key为房间号，value为 客户端1 客户端2，空格隔开
+	Hashtable<String, String> roomHash = new Hashtable<String, String>(50);// 每个房间的对弈情况，key为房间号，value为 客户端1 客户端2，空格隔开
+	ConcurrentHashMap<String, Vector<String>> roomUserList = new ConcurrentHashMap<String, Vector<String>>();
 
 	/**
-	 *框架类的构造函数
+	 * 框架类的构造函数
 	 */
 	ChessServer() {
 		super("Java五子棋服务器");
@@ -440,35 +570,39 @@ public class ChessServer extends Frame implements ActionListener {
 		} catch (Exception e) {
 			System.out.println("e");
 		}
+
+		// 初始化各个房间的观众列表为空
+		for (int i = 0; i < 50; i++) {
+			Vector<String> tmp = new Vector<String>();
+			roomUserList.put(String.valueOf(i), tmp);
+		}
 	}
 
 	/**
 	 * 初始化消息服务器的类
 	 */
-	public void makeMessageServer(int port, MessageServerPanel server)
-			throws IOException {
+	public void makeMessageServer(int port, MessageServerPanel server) throws IOException {
 		Socket clientSocket;
 		this.server = server;
 
 		try {
 			// 输出服务器的启动信息
 			serverSocket = new ServerSocket(port);
-			server.messageBoard.setText("服务器开始于:"
-					+ serverSocket.getInetAddress().getLocalHost() + ":"
+			server.messageBoard.setText("服务器开始于:" + serverSocket.getInetAddress().getLocalHost() + ":"
 					+ serverSocket.getLocalPort() + "\n");
 
 			while (true) {
 				clientSocket = serverSocket.accept();
 				server.messageBoard.append("用户连接:" + clientSocket + "\n");
-				
-				//用户与服务器连接之后，clientDataHash即用户socket和其数据流的对应先进行记录，
-				//然后再判断其登录用的用户名是否与已有的重复了，即使重复了也可以通过这个数据流来返回通知去来源端修改，
-				//而不是用错误的用户名去查找用户名和socket表的另一正常方socket
+
+				// 用户与服务器连接之后，clientDataHash即用户socket和其数据流的对应先进行记录，
+				// 然后再判断其登录用的用户名是否与已有的重复了，即使重复了也可以通过这个数据流来返回通知去来源端修改，
+				// 而不是用错误的用户名去查找用户名和socket表的另一正常方socket
 				DataOutputStream outData = new DataOutputStream(clientSocket.getOutputStream());
 				clientDataHash.put(clientSocket, outData);
-				//为每一次信息开启一个线程做处理
-				ServerThread thread = new ServerThread(clientSocket,
-						clientDataHash, clientNameHash, chessPeerHash, room, server);
+				// 为每一次信息开启一个线程做处理
+				ServerThread thread = new ServerThread(clientSocket, clientDataHash, clientNameHash, chessPeerHash,
+						roomHash, roomUserList, server);
 				thread.start();
 			}
 		} catch (IOException ex) {
@@ -486,12 +620,10 @@ public class ChessServer extends Frame implements ActionListener {
 		// 当“服务器状态”按钮点击时，显示服务器状态
 		if (e.getSource() == serverStatusButton) {
 			try {
-				server.messageBoard.append("服务器信息:"
-						+ serverSocket.getInetAddress().getLocalHost() + ":"
+				server.messageBoard.append("服务器信息:" + serverSocket.getInetAddress().getLocalHost() + ":"
 						+ serverSocket.getLocalPort() + "\n");
 			} catch (Exception ee) {
-				System.out
-						.println("serverSocket.getInetAddress().getLocalHost() error \n");
+				System.out.println("serverSocket.getInetAddress().getLocalHost() error \n");
 			}
 		}
 		if (e.getSource() == serverOffButton) {
@@ -500,12 +632,12 @@ public class ChessServer extends Frame implements ActionListener {
 	}
 
 	public static void main(String args[]) {
-		 SubstanceLookAndFeel sa = new SubstanceOfficeBlue2007LookAndFeel();			
-			 try {
-			 UIManager.setLookAndFeel(sa);
-			 } catch (Exception e) {
-			 e.printStackTrace();
-			 }
+		SubstanceLookAndFeel sa = new SubstanceOfficeBlue2007LookAndFeel();
+		try {
+			UIManager.setLookAndFeel(sa);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		ChessServer ChessServer = new ChessServer();
 	}
 }

@@ -3,11 +3,16 @@ package ui;
 
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.List;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import util.Config;
+import util.EachRoomThread;
 import util.WZQ_listener;
 
 public class EachRoomFrame extends JFrame{
@@ -20,6 +25,8 @@ public class EachRoomFrame extends JFrame{
 	public Graphics g;
 	public static Config chess_config;
 	public static int GameModel = 1;
+	
+	public EachRoomThread eachRoomThread;
 	
 	//默认构造函数
 	public EachRoomFrame() {
@@ -34,7 +41,6 @@ public class EachRoomFrame extends JFrame{
 			public void paint(Graphics g) {
 				g.setColor(Color.BLACK);
 				super.paint(g);
-				System.out.println("g=="+g);
 				// 画15行
 				for (int i = 0; i < chess_config.ROW; i++) {
 					g.drawLine(20, 20 + i * chess_config.Board_distance,
@@ -63,8 +69,6 @@ public class EachRoomFrame extends JFrame{
 		chessBoardPanel.setBackground(new Color(209, 167, 78));
 		
 		
-		
-		
 		chessLeftPanel.setBounds(0, 0, Config.Chess_width/3, Config.Chess_high+100);
 		chessBoardPanel.setBounds(Config.Chess_width/3, 0, Config.Chess_width, Config.Chess_high);
 		chessRightPanel.setBounds(Config.Chess_width*4/3, 0, Config.Chess_width/3, Config.Chess_high+100);
@@ -79,7 +83,6 @@ public class EachRoomFrame extends JFrame{
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		g = chessBoardPanel.getGraphics();
-		System.out.println("g="+g);
 		WZQ_listener lis = new WZQ_listener(g);
 		chessBoardPanel.addMouseListener(lis);
 		
@@ -87,7 +90,7 @@ public class EachRoomFrame extends JFrame{
 		
 	}
 	public EachRoomFrame(MainUIFrame mui) {
-		this.setTitle(mui.name);
+		this.setTitle("房间号："+mui.roomId+" 用户名："+":"+mui.name);
 		this.setLayout(null);
 		chessLeftPanel = new ChessLeftPanel();
 		chessRightPanel = new ChessRightPanel();
@@ -98,7 +101,6 @@ public class EachRoomFrame extends JFrame{
 			public void paint(Graphics g) {
 				g.setColor(Color.BLACK);
 				super.paint(g);
-				System.out.println("g=="+g);
 				// 画15行
 				for (int i = 0; i < chess_config.ROW; i++) {
 					g.drawLine(20, 20 + i * chess_config.Board_distance,
@@ -140,14 +142,19 @@ public class EachRoomFrame extends JFrame{
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		g = chessBoardPanel.getGraphics();
-		System.out.println("g="+g);
 		WZQ_listener lis = new WZQ_listener(g);
 		chessBoardPanel.addMouseListener(lis);
+		
+//		mui.mainUIThread.sendMessage("/eachroomuserlist "+mui.roomId);
+		eachRoomThread = new EachRoomThread(mui,this);
+		//获得当前房间观战人员列表
+		eachRoomThread.sendMessage("/eachroomuserlist "+mui.roomId);
+		//获得棋盘正在对战的双方人员
+		eachRoomThread.sendMessage("/compete "+mui.roomId);
 	}
 
 	public static void main(String[] args) {
 		new EachRoomFrame();
 
 	}
-
 }

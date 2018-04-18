@@ -20,7 +20,7 @@ import util.Config;
 public class ChessRightPanel extends JPanel {
 	public JLabel label_user = new JLabel("用户1",JLabel.CENTER);
 	
-	public List userList = new List(5);  //可滚动的文本项列表
+	public List userList = new List(20);  //可滚动的文本项列表
 	
 	public JTextArea tArea_notice = new JTextArea("此处显示通知");
 	public JScrollPane jsp = new JScrollPane(tArea_notice);
@@ -28,10 +28,10 @@ public class ChessRightPanel extends JPanel {
 	public ChessRightPanel() {
 		this.setSize(Config.Chess_width/3, Config.Chess_high);
 		this.setLayout(new GridLayout(3, 1));
-		for (int i = 0; i < 30; i++) {
-			userList.add(i + "." + "当前暂无用户");
-		}
-		tArea_notice.setEditable(false);
+//		for (int i = 0; i < 30; i++) {
+//			userList.add(i + "." + "当前暂无用户");
+//		}
+//		tArea_notice.setEditable(false);
 		this.add(label_user);
 		this.add(userList); //添加到面板的中间区域
 		this.add(jsp);

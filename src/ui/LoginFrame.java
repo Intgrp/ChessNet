@@ -75,10 +75,12 @@ public class LoginFrame extends JFrame{
 			@Override
 			public void windowClosing(WindowEvent e) {
 				try {
+					socket.getInputStream().close();
 					socket.close();
 					clientthread.stop();
 				} catch (IOException e1) {
 					System.out.println("login  socketπÿ±’“Ï≥£");
+					e1.printStackTrace();
 				}
 				System.exit(0);
 			}

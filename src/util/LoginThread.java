@@ -24,7 +24,7 @@ public class LoginThread extends Thread{
 	 * 发送消息
 	 */
 	public void sendMessage( String sndMessage) {
-		System.out.println("Login开始发送消息："+sndMessage);
+		System.out.println("LoginThread开始发送消息："+sndMessage);
 		try {
 			DataOutputStream outData = new DataOutputStream(socket.getOutputStream());
 			outData.writeUTF(sndMessage);
@@ -44,7 +44,7 @@ public class LoginThread extends Thread{
 				//原始登录界面隐藏
 				loginFrame.jf.setVisible(false);
 				mainUIFrame = new MainUIFrame(socket, loginFrame.name);
-				System.out.println("成功收到消息，登录中.......");
+				System.out.println("LoginThread成功收到login消息，登录中.......");
 			}else if (result.equals("error")) {
 				loginFrame.lable_result.setText("该用户已存在");
 			}
@@ -54,12 +54,10 @@ public class LoginThread extends Thread{
 		}
 		else {
 			if (mainUIFrame!=null) {
-				System.out.println("======LoginThread的消息转接到mainUIThread======");
-				System.out.println("接收到其他请求："+recMessage);
 				mainUIFrame.mainUIThread.acceptMessage(recMessage);
 			}else {
 				System.out.println("======未登录的LoginThread的消息======");
-				System.out.println("接收到其他请求："+recMessage);
+				System.out.println("LoginThread接收到其他请求："+recMessage);
 			}
 		}
 	}
@@ -68,7 +66,7 @@ public class LoginThread extends Thread{
     	String message = "";
 		try {
 			while (true) {
-				if (socket!=null) {
+				if (socket.getInputStream()!=null) {
 					message = new DataInputStream(socket.getInputStream()).readUTF();
 					acceptMessage(message);
 				}else {

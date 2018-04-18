@@ -113,7 +113,7 @@ public class EachRoomPanel extends JPanel {
 		btn_table.setBounds(60,5,60,60);
 		btn_right_user.setBounds(125, 10, 50, 50);
 		
-		//去边框
+		//去Button边框，是图片没有框框感觉
 		btn_left_user.setBorderPainted(false); 
 		btn_table.setBorderPainted(false); 
 		btn_right_user.setBorderPainted(false); 
@@ -129,6 +129,7 @@ public class EachRoomPanel extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				System.out.println(btn_table.getText() + "btn_left_user");
+				mui.roomId = btn_table.getText();
 				mui.mainUIThread.sendMessage("/room "+btn_table.getText()+" "+mui.name+" null");
 				mui.mainUIThread.sendMessage("/mainui allonline");
 			}
@@ -139,6 +140,7 @@ public class EachRoomPanel extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				System.out.println(btn_table.getText() + "btn_right_user");
+				mui.roomId = btn_table.getText();
 				mui.mainUIThread.sendMessage("/room "+btn_table.getText()+" "+"null "+mui.name);
 				mui.mainUIThread.sendMessage("/mainui allonline");
 			}
@@ -149,6 +151,7 @@ public class EachRoomPanel extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				System.out.println(btn_table.getText() + "btn_table");
+				mui.roomId = btn_table.getText();
 				mui.mainUIThread.sendMessage("/room "+btn_table.getText()+" "+"null "+mui.name);
 				mui.mainUIThread.sendMessage("/mainui allonline");
 			}

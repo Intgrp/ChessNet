@@ -23,8 +23,8 @@ public class ChessLeftPanel extends JPanel {
 		setLayout(new GridLayout(4, 1));
 		setSize((Integer) (Config.Chess_width / 3), Config.Chess_high);
 
-		label_head1 = new JLabel("用户1",JLabel.CENTER);
-		label_head2 = new JLabel("用户2",JLabel.CENTER);
+		label_head1 = new JLabel("当前没有人",JLabel.CENTER);
+		label_head2 = new JLabel("当前没有人",JLabel.CENTER);
 		label_time1 = new JLabel("120 s",JLabel.CENTER);
 		label_time2 = new JLabel("120 s",JLabel.CENTER);
 

@@ -86,10 +86,15 @@ public class ChessBottomPanel extends JPanel {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				jf.setVisible(false);
-				jf.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-				mui.mframe.setVisible(true);
-//				mui.mainUIThread.sendMessage("/roomleave "+jf.);
+				if (mui.roomId!=null && !"".equals(mui.roomId)) {
+					mui.mainUIThread.sendMessage("/leaveroom "+mui.roomId+" "+mui.name);
+					mui.roomId="";
+					mui.repaint();//全部设置完图片后刷新界面
+					mui.mframe.setVisible(true);
+					jf.setVisible(false);
+					jf.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+				}
+				
 			}
 		});
 	}

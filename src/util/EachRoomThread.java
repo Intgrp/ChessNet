@@ -9,18 +9,17 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
-import org.shan.chesspanel.ChessPanel;
 
-import ui.EachRoomFrame;
+import ui.EachRoomChessFrame;
 import ui.LoginFrame;
 import ui.MainUIFrame;
 
 public class EachRoomThread extends Thread{
 	private Socket socket;
 	public MainUIFrame mui;
-	public EachRoomFrame eachRoomFrame;
+	public EachRoomChessFrame eachRoomFrame;
 	
-	public EachRoomThread(MainUIFrame  mainUIFrame, EachRoomFrame eachRoomFrame) {    
+	public EachRoomThread(MainUIFrame  mainUIFrame, EachRoomChessFrame eachRoomFrame) {    
         socket = mainUIFrame.clientSocket;    
         mui = mainUIFrame;
         this.eachRoomFrame = eachRoomFrame;
@@ -30,7 +29,7 @@ public class EachRoomThread extends Thread{
 	 * 发送消息
 	 */
 	public void sendMessage( String sndMessage) {
-		System.out.println("EachRoomThread发送消息："+sndMessage);
+		System.out.println("用户："+mui.name+" 在EachRoomThread发送消息："+sndMessage);
 		try {
 			DataOutputStream outData = new DataOutputStream(socket.getOutputStream());
 			outData.writeUTF(sndMessage);
@@ -43,7 +42,7 @@ public class EachRoomThread extends Thread{
 	 * 接收消息
 	 */
 	public void acceptMessage(String recMessage) {
-		System.out.println("EachRoomThread接收消息："+recMessage);
+		System.out.println("用户："+mui.name+" 在EachRoomThread接收消息："+recMessage);
 		if (recMessage.startsWith("/eachroomuserlist ")) {
 			String result = recMessage.substring("/eachroomuserlist ".length());
 			String[] lookUserList= result.split(" ");
@@ -75,12 +74,39 @@ public class EachRoomThread extends Thread{
 		else if (recMessage.startsWith("/compete ")) {
 			String result = recMessage.substring("/compete ".length());
 			String[] competeUsers = result.split(" ");
-			if (!competeUsers[0].equals("null"))
+			if (!competeUsers[0].equals("null")) {
 				eachRoomFrame.chessLeftPanel.label_head1.setText("对战方："+competeUsers[0]);
+				if (mui.name.equals(competeUsers[0])) {
+					//默认对战方第一个如果是用户本人的话，则执黑先行
+					System.out.println("该用户与标题一致，执笔原状态为："+eachRoomFrame.lis.isMouseEnabled);
+					eachRoomFrame.lis.isMouseEnabled=true;
+					eachRoomFrame.lis.color=true;
+					System.out.println("该用户与标题一致，执笔改变状态为："+eachRoomFrame.lis.isMouseEnabled);
+				}else {
+					System.out.println("该用户与标题不一致，执笔原状态为："+eachRoomFrame.lis.isMouseEnabled);
+					eachRoomFrame.lis.isMouseEnabled=false;
+					eachRoomFrame.lis.color=false;
+					System.out.println("该用户与标题不一致，执笔改变状态为："+eachRoomFrame.lis.isMouseEnabled);
+				}
+			}
 			else eachRoomFrame.chessLeftPanel.label_head1.setText("当前没有人");
-			if (!competeUsers[1].equals("null"))
+			if (!competeUsers[1].equals("null")) {
 				eachRoomFrame.chessLeftPanel.label_head2.setText("对战方："+competeUsers[1]);
+			}
 			else eachRoomFrame.chessLeftPanel.label_head2.setText("当前没有人");
+		}
+		else if (recMessage.startsWith("/inchess ")) {
+			String result = recMessage.substring("/inchess ".length()); 
+			eachRoomFrame.lis.StringToArray(result);
+			eachRoomFrame.chessBoardPanel.updateUI();
+//			eachRoomFrame.refresh();
+		}
+		else if (recMessage.startsWith("/play ")) {
+			String result = recMessage.substring("/play ".length()); 
+			if (result.equals("ok")) {
+				System.out.println("用户："+mui.name+"收到/play ok消息原本的isMouseEnabled值为："+eachRoomFrame.lis.isMouseEnabled);
+				eachRoomFrame.lis.isMouseEnabled=true;
+			}
 		}
 	}
 

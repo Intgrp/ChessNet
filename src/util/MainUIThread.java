@@ -7,16 +7,14 @@ import java.net.Socket;
 
 import javax.swing.JFrame;
 
-import org.shan.chesspanel.ChessPanel;
-
-import ui.EachRoomFrame;
+import ui.EachRoomChessFrame;
 import ui.LoginFrame;
 import ui.MainUIFrame;
 
 public class MainUIThread extends Thread{
 	private Socket socket;
 	public MainUIFrame mui;
-	EachRoomFrame eroomf;
+	public EachRoomChessFrame eroomf;
 	
 	public MainUIThread(Socket client, String clientName, MainUIFrame curUI) {    
         socket = client;    
@@ -29,7 +27,7 @@ public class MainUIThread extends Thread{
 	 * 发送消息
 	 */
 	public void sendMessage( String sndMessage) {
-		System.out.println("MainUIThread发送消息："+sndMessage);
+		System.out.println("用户："+mui.name+" 在MainUIThread发送消息："+sndMessage);
 		try {
 			DataOutputStream outData = new DataOutputStream(socket.getOutputStream());
 			outData.writeUTF(sndMessage);
@@ -42,7 +40,7 @@ public class MainUIThread extends Thread{
 	 * 接收消息
 	 */
 	public void acceptMessage(String recMessage) {
-		System.out.println("MainUIThread接收消息："+recMessage);
+		System.out.println("用户："+mui.name+" 在MainUIThread接收消息："+recMessage);
 		//如果收到的消息是 
 		if (recMessage.startsWith("/login ")) {
 			String result = recMessage.substring("/login ".length());
@@ -56,14 +54,17 @@ public class MainUIThread extends Thread{
 		}
 		else if (recMessage.startsWith("/room ")) {
 			String result = recMessage.substring("/room ".length());
-			if (result.equals("ok")) {
+			String[] mm = result.split(" ");
+			if (mm[0].equals("ok")) {
 //				mui.mainUIThread.sendMessage("/eachroomuserlist "+mui.roomId);
-				eroomf = new EachRoomFrame(mui);
+				eroomf = new EachRoomChessFrame(mui);
 				eroomf.chessRightPanel.label_user.setText("本人昵称："+mui.name);
+				if (mui.name.equals(mm[1]))
+					eroomf.lis.isMouseEnabled = true;
 				mui.mframe.setVisible(false);
-			}else if(result.equals("occupy")){
+			}else if(mm[0].equals("occupy")){
 				//该位置已经有人了，进入观战模式
-				eroomf = new EachRoomFrame(mui);
+				eroomf = new EachRoomChessFrame(mui);
 				eroomf.chessBottomPanel.btn_fail.setEnabled(false);
 				eroomf.chessBottomPanel.btn_prepare.setEnabled(false);
 				eroomf.chessRightPanel.label_user.setText("本人昵称："+mui.name);
@@ -90,6 +91,7 @@ public class MainUIThread extends Thread{
 					String[] eachRoom = tmp[i].split(",");
 					System.out.println("MainUIThread接收到消息：eachRoom="+eachRoom[0]+","+eachRoom[1]+","+eachRoom[2]);
 					int roomId = Integer.valueOf(eachRoom[0]);
+					
 					//桌号从1开始，所以减一才能做数组索引
 					if (!eachRoom[1].equals("null")) {
 						mui.roomPanel.eachRoomPanels[roomId-1].btn_left_user

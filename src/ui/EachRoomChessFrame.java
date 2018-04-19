@@ -15,7 +15,7 @@ import util.Config;
 import util.EachRoomThread;
 import util.WZQ_listener;
 
-public class EachRoomFrame extends JFrame{
+public class EachRoomChessFrame extends JFrame{
 	
 	public ChessLeftPanel chessLeftPanel;
 	public JPanel chessBoardPanel;
@@ -27,9 +27,11 @@ public class EachRoomFrame extends JFrame{
 	public static int GameModel = 1;
 	
 	public EachRoomThread eachRoomThread;
+	public WZQ_listener lis;
 	
+	/*
 	//默认构造函数
-	public EachRoomFrame() {
+	public EachRoomChessFrame() {
 		this.setTitle("User1");
 		this.setLayout(null);
 		chessLeftPanel = new ChessLeftPanel();
@@ -83,13 +85,16 @@ public class EachRoomFrame extends JFrame{
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		g = chessBoardPanel.getGraphics();
-		WZQ_listener lis = new WZQ_listener(g);
+		lis = new WZQ_listener(g,this);
 		chessBoardPanel.addMouseListener(lis);
 		
 		
 		
 	}
-	public EachRoomFrame(MainUIFrame mui) {
+	
+	*/
+	
+	public EachRoomChessFrame(MainUIFrame mui) {
 		this.setTitle("房间号："+mui.roomId+" 用户名："+":"+mui.name);
 		this.setLayout(null);
 		chessLeftPanel = new ChessLeftPanel();
@@ -122,8 +127,11 @@ public class EachRoomFrame extends JFrame{
 				g.fillOval(133, 453, 15, 15);
 				g.fillOval(293, 453, 15, 15);
 				g.fillOval(453, 453, 15, 15);
-			
-			}
+				
+				if (lis!=null) {
+					lis.refresh(g);
+				}
+			}	
 		};
 		
 		chessBoardPanel.setBackground(new Color(209, 167, 78));
@@ -142,7 +150,7 @@ public class EachRoomFrame extends JFrame{
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		g = chessBoardPanel.getGraphics();
-		WZQ_listener lis = new WZQ_listener(g);
+		lis = new WZQ_listener(g,this);
 		chessBoardPanel.addMouseListener(lis);
 		
 //		mui.mainUIThread.sendMessage("/eachroomuserlist "+mui.roomId);
@@ -151,10 +159,31 @@ public class EachRoomFrame extends JFrame{
 		eachRoomThread.sendMessage("/eachroomuserlist "+mui.roomId);
 		//获得棋盘正在对战的双方人员
 		eachRoomThread.sendMessage("/compete "+mui.roomId);
+		
 	}
+	
+	public void refresh() {
+//    	eroomf.chessBoardPanel.paint(g);
+    	for (int i=0;i<lis.array_win.length;i++) {
+    		for (int j=0;j<lis.array_win.length;j++) {
+    			if (lis.array_win[i][j]!=0) {
+    				if (lis.array_win[i][j]==1) {
+    					g.setColor(Color.BLACK);  
+    	                g.fillOval(i, j, Config.Chess_size,  
+    	                        Config.Chess_size);  
+    				}
+    				else if (lis.array_win[i][j]==2) {
+    					g.setColor(Color.WHITE);  
+    	                g.fillOval(i*40, j*40, Config.Chess_size,  
+    	                        Config.Chess_size);  
+    				}
+    			}
+    		}
+    	}
+    }
 
 	public static void main(String[] args) {
-		new EachRoomFrame();
+//		new EachRoomChessFrame();
 
 	}
 }

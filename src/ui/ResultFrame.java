@@ -15,8 +15,10 @@ public class ResultFrame extends JFrame{
 	public JFrame jf ;
     public int i;  
     public JPanel panel;  
-    public ResultFrame(int i){  
+    public EachRoomChessFrame eChessFrame;
+    public ResultFrame(int i, EachRoomChessFrame eChessFrame){  
         this.i = i;  
+        this.eChessFrame = eChessFrame;
     }  
       
     /* 
@@ -38,7 +40,7 @@ public class ResultFrame extends JFrame{
             panel.add(lab,BorderLayout.CENTER);  
               
         }  
-        else if(i == -1){  
+        else if(i == 2){  
                 JLabel lab = new JLabel("白子五连，白子胜！");  
                 panel.add(lab);  
         }  
@@ -52,14 +54,23 @@ public class ResultFrame extends JFrame{
         btn_restart.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				new EachRoomChessFrame(eChessFrame.eachRoomThread.mui);
+				jf.setVisible(false);
+				jf.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 				jf.dispose();
-				new EachRoomFrame();
 			}
 		});  
         btn_exit.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				jf.dispose();
+				eChessFrame.eachRoomThread.mui.mainUIThread.sendMessage("/leaveroom "+eChessFrame.eachRoomThread.mui.roomId+" "+eChessFrame.eachRoomThread.mui.name);
+				eChessFrame.eachRoomThread.mui.roomId="";
+				eChessFrame.eachRoomThread.mui.repaint();//全部设置完图片后刷新界面
+				eChessFrame.eachRoomThread.mui.mframe.setVisible(true);
+				eChessFrame.setVisible(false);
+				eChessFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+				jf.setVisible(false);
+				jf.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 			}
 		});  
 

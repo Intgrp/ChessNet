@@ -77,7 +77,7 @@ class ServerThread extends Thread {
 	Hashtable<String, String> chessPeerHash;// 对弈的两个客户端用户名的映射,正在下棋，则放进去。这里面没用
 
 	// 每个房间的对弈情况，key为房间号，value为 客户端1，客户端2，逗号隔开
-	//为正在对战的列表，如果进来时有空的，则直接进入对战人员，如果不空，则进入观战列表
+	// 为正在对战的列表，如果进来时有空的，则直接进入对战人员，如果不空，则进入观战列表
 	Hashtable<String, String> roomHash;
 
 	ConcurrentHashMap<String, Vector<String>> roomUserList;// 记录每个房间进去了的人列表格式为： 房间号 用户列表
@@ -109,7 +109,7 @@ class ServerThread extends Thread {
 		System.out.println("收到消息，信息为：" + message);
 		String clientName, peerName;
 		/**
-		 *  登录，确认是否已经有人占用了这个昵称
+		 * 登录，确认是否已经有人占用了这个昵称
 		 */
 		if (message.startsWith("/login ")) {
 			clientName = message.substring("/login ".length());
@@ -147,16 +147,19 @@ class ServerThread extends Thread {
 				firstCome();
 				// 函数处理后输出为 /mainui 桌号,user1,user2 桌号,user3,user4
 				String roomUserlist = getRoomList();
-				System.out.println("服务器端roomUserlist："+roomUserlist);
+				System.out.println("服务器端roomUserlist：" + roomUserlist);
 				publicTalk(roomUserlist);
 			}
 		}
 		/**
-		 *  客户端选择了一个房间，服务器将其记录占用位置，并广播给所有用户最新的房间情况
+		 * 客户端选择了一个房间，服务器将其记录占用位置，并广播给所有用户最新的房间情况
+		 * 成功进入该位置 返回：/room ok 左用户名称 右用户名    
+		 * 否则：返回 /room occupy 左用户名称 右用户名
+		 * 该位置有人了,进入观战模式
 		 */
 		else if (message.startsWith("/room ")) {
 			String[] mm = message.substring("/room ".length()).split(" ");
-			System.out.println("/room 分割后的数组："+mm[0]+","+mm[1]+","+mm[2]);
+			System.out.println("/room 分割后的数组：" + mm[0] + "," + mm[1] + "," + mm[2]);
 			String roomId = mm[0];
 			String leftUser = mm[1];
 			String rightUser = mm[2];
@@ -166,133 +169,158 @@ class ServerThread extends Thread {
 				synchronized (roomHash) {
 					roomHash.put(roomId, leftUser + "," + rightUser);// key为房间号,value为格式 user1,user2 的形式
 				}
-				Feedback("/room ok");
+				Feedback("/room ok "+leftUser + " " + rightUser);
 			} else {// 如果有人
 				String[] users = roomHash.get(roomId).split(",");
 				if (!users[0].equals("null") && !users[1].equals("null")) {
 					// 该房间位置有人了，且房间有两个人，则进入观战模式
-					Feedback("/room occupy");
+					/**
+					 * 进入观战
+					 */
+					Feedback("/room occupy "+users[0]+" "+users[1]);
 				} else {// 如果房间只有一个人，则自动占领 空的位置
 					if (users[0].equals("null")) {
 						synchronized (roomHash) {
 							String tmp = (leftUser.equals("null") ? rightUser : leftUser) + "," + users[1];
+							String outMsg = (leftUser.equals("null") ? rightUser : leftUser) + " " + users[1];
 							roomHash.replace(roomId, users[0] + "," + users[1], tmp);
-							Feedback("/room ok");
+							Feedback("/room ok "+outMsg);
 						}
 					} else {
 						synchronized (roomHash) {
 							String tmp = users[0] + "," + (leftUser.equals("null") ? rightUser : leftUser);
+							String outMsg = users[0] + " " + (leftUser.equals("null") ? rightUser : leftUser);
 							roomHash.replace(roomId, users[0] + "," + users[1], tmp);
-							Feedback("/room ok");
+							Feedback("/room ok "+outMsg);
 						}
 					}
 				}
 			}
-			//向其他用户更新各个桌子的用户情况
+			// 向其他用户更新各个桌子对战的用户情况
 			publicTalk(getRoomList());
-			
-			// 不管房间有没有人，先加入房间用户列表
+
+			// 不管房间有没有人，先加入房间观战用户列表
 			if (!roomUserList.containsKey(roomId)) {
 				synchronized (roomUserList) {
 					Vector<String> roomVector = new Vector<String>();
 					roomUserList.put(roomId, roomVector);
 				}
 			}
-			
+
 			Vector<String> tmp = roomUserList.get(roomId);
 			synchronized (roomUserList) {
-				String uuser ="";
-				if (leftUser!=null && !"null".equals(leftUser))
-					uuser=leftUser;
-				else if (rightUser!=null && !"null".equals(rightUser))
+				String uuser = "";
+				if (leftUser != null && !"null".equals(leftUser))
+					uuser = leftUser;
+				else if (rightUser != null && !"null".equals(rightUser))
 					uuser = rightUser;
-				System.out.println("uuser:"+uuser);
-				if (roomUserList!=null) {
-					System.out.println("roomUserList="+roomUserList);
-					System.out.println("roomUserList.get(roomId)="+roomUserList.get(roomId).toString());
+				System.out.println("uuser:" + uuser);
+				if (roomUserList != null) {
+					System.out.println("roomUserList=" + roomUserList);
+					System.out.println("roomUserList.get(roomId)=" + roomUserList.get(roomId).toString());
 					synchronized (roomUserList) {
 						roomUserList.get(roomId).add(uuser);
 					}
-					
+
 				}
 			}
 			String outMesg = getRoomUserList(roomId);
-			// 并且对该房间的所有用户更新用户列表
+			// 并且对该房间的所有用户更新观战用户列表
 			Iterator<String> iterator = tmp.iterator();
 			while (iterator.hasNext()) {
-				//向该房间的用户广播房间用户列表
+				// 向该房间的用户广播房间观战用户列表
 				peerTalk(iterator.next(), outMesg);
 			}
 		}
 		/**
-		 *  如果进入房间的用户离开房间 格式为 /leaveroom 房间号 user
-		 *  需要广播给各个客户端最新房间信息
+		 * 如果进入房间的用户离开房间 格式为 /leaveroom 房间号 user 需要广播给各个客户端最新房间信息
 		 */
 		else if (message.startsWith("/leaveroom ")) {
 			String[] mm = message.substring("/leaveroom ".length()).split(" ");
-			System.out.println("/leaveroom 分割后的数组："+mm[0]+","+mm[1]);
+			System.out.println("/leaveroom 分割后的数组：" + mm[0] + "," + mm[1]);
 			String roomId = mm[0];
 			String leaveName = mm[1];
 			Vector<String> tmp = roomUserList.get(roomId);
-			System.out.println("判断vector是否为空:"+tmp);
-			System.out.println("判断该房间用户信息："+tmp.toString());
+			System.out.println("判断vector是否为空:" + tmp);
+			System.out.println("判断该房间用户信息：" + tmp.toString());
 			synchronized (tmp) {
 				tmp.remove(leaveName);
-				System.out.println("删除后的用户信息tmp="+tmp.toString());
+				System.out.println("删除后的用户信息tmp=" + tmp.toString());
 			}
 			Iterator<String> iterator = tmp.iterator();
-			//向该房间用户发送更新的用户列表
+			// 向该房间用户发送更新的用户列表
 			String outMesg = getRoomUserList(roomId);
 			iterator = tmp.iterator();
 			while (iterator.hasNext()) {
-				//向该房间内的用户广播房间用户列表
+				// 向该房间内的用户广播房间用户列表
 				peerTalk(iterator.next(), outMesg);
 			}
-			//向MainUI主窗口广播，如果你是该房间的下棋着，则退出后该房间少了一人，故要广播说这个房间少一人
-			//如果不是，则不用广播
+			// 向MainUI主窗口广播，如果你是该房间的下棋着，则退出后该房间少了一人，故要广播说这个房间少一人
+			// 如果不是，则不用广播
 			String[] userlist = roomHash.get(roomId).split(",");
-			synchronized(roomHash) {
+			synchronized (roomHash) {
 				if (userlist[0].equals(leaveName)) {
-					userlist[0]="null";
+					userlist[0] = "null";
+				} else if (userlist[1].equals(leaveName)) {
+					userlist[1] = "null";
 				}
-				else if (userlist[1].equals(leaveName)) {
-					userlist[1]="null";
-				}
-				roomHash.replace(roomId, userlist[0]+","+userlist[1]);
+				roomHash.replace(roomId, userlist[0] + "," + userlist[1]);
 			}
 			publicTalk(getRoomList());
 		}
 		/**
-		 * 返回观战的用户列表
-		 * 请求格式：/eachroomuserlist 房间号
-		 * 返回格式：/eachroomuserlist user1 user2 user3
+		 * 返回观战的用户列表 请求格式：/eachroomuserlist 房间号 返回格式：/eachroomuserlist user1 user2 user3
 		 */
-		else if (message.startsWith("/eachroomuserlist ")){
-			//格式为：/eachroomuserlist 房间号
+		else if (message.startsWith("/eachroomuserlist ")) {
+			// 格式为：/eachroomuserlist 房间号
 			String result = message.substring("/eachroomuserlist ".length());
-			if (result!=null && !result.equals("")) {
-				Iterator<String>tmp = roomUserList.get(result).iterator();
+			if (result != null && !result.equals("")) {
+				Iterator<String> tmp = roomUserList.get(result).iterator();
 				String outMesg = getRoomUserList(result);
-				System.out.println("服务端，消息/eachroomuserlist的getRoomUserList的结果"+outMesg);
+				System.out.println("服务端，消息/eachroomuserlist的getRoomUserList的结果" + outMesg);
 				while (tmp.hasNext()) {
 					peerTalk(tmp.next(), outMesg);
 				}
 			}
 		}
 		/**
-		 * 返回正在对弈的双方信息
-		 * 请求格式：/compete 房间号
-		 * 返回格式：/compete user1 user2
+		 * 返回正在对弈的双方信息 请求格式：/compete 房间号 返回格式：/compete user1 user2
 		 */
 		else if (message.startsWith("/compete ")) {
 			String result = message.substring("/compete ".length());
 			String[] competeUser = roomHash.get(result).split(",");
-			if (result!=null && !result.equals("")) {
-				Iterator<String>tmp = roomUserList.get(result).iterator();
-				String outMesg = "/compete "+competeUser[0]+" "+ competeUser[1];
+			if (result != null && !result.equals("")) {
+				Iterator<String> tmp = roomUserList.get(result).iterator();
+				String outMesg = "/compete " + competeUser[0] + " " + competeUser[1];
 				while (tmp.hasNext()) {
 					peerTalk(tmp.next(), outMesg);
 				}
+			}
+		}
+		/**
+		 * 返回给所有该房间用户最新的棋盘状态 请求格式：/inchess 房间号 棋盘信息 返回格式：/inchess 棋盘数组信息
+		 */
+		else if (message.startsWith("/inchess ")) {
+			String[] result = message.substring("/inchess ".length()).split(" ");
+			Iterator<String> tmp = roomUserList.get(result[0]).iterator();
+			String outMesg = "/inchess " +result[1];
+			while (tmp.hasNext()) {
+				peerTalk(tmp.next(), outMesg);
+			}
+		}
+		/**
+		 * 返回给对弈方你可以下棋了 请求格式：/play 房间号 本人用户名 返回格式：/play ok 
+		 */
+		else if (message.startsWith("/play ")) {
+			String[] result = message.substring("/play ".length()).split(" ");
+			String[] userlist = roomHash.get(result[0]).split(",");//user0,user1
+			if (userlist[0].equals(result[1]) && !userlist[1].equals("null")) {
+				//本用户是user0，同时user1有人，不空，那么发送给use1
+				System.out.println("服务器：收到："+message+"消息，获得对战列表："+userlist[0]+","+userlist[1]);
+				peerTalk(userlist[1], "/play ok");
+			}
+			else if (userlist[1].equals(result[1]) && !userlist[0].equals("null")) {
+				peerTalk(userlist[0], "/play ok");
 			}
 		}
 	}

@@ -29,6 +29,9 @@ public class EachRoomChessFrame extends JFrame{
 	public EachRoomThread eachRoomThread;
 	public WZQ_listener lis;
 	
+	public String comp1="null";
+	public String comp2="null";
+	
 	/*
 	//默认构造函数
 	public EachRoomChessFrame() {

@@ -78,7 +78,8 @@ public class ChessBottomPanel extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
-				
+				btn_prepare.setEnabled(false);
+				mui.mainUIThread.sendMessage("/prepare "+mui.roomId+" "+mui.name);
 			}
 		});
 		

@@ -19,6 +19,8 @@ public class EachRoomThread extends Thread{
 	public MainUIFrame mui;
 	public EachRoomChessFrame eachRoomFrame;
 	
+	public int flag=1;
+	
 	public EachRoomThread(MainUIFrame  mainUIFrame, EachRoomChessFrame eachRoomFrame) {    
         socket = mainUIFrame.clientSocket;    
         mui = mainUIFrame;
@@ -76,22 +78,15 @@ public class EachRoomThread extends Thread{
 			String[] competeUsers = result.split(" ");
 			if (!competeUsers[0].equals("null")) {
 				eachRoomFrame.chessLeftPanel.label_head1.setText("对战方："+competeUsers[0]);
-				if (mui.name.equals(competeUsers[0])) {
-					//默认对战方第一个如果是用户本人的话，则执黑先行
-					System.out.println("该用户与标题一致，执笔原状态为："+eachRoomFrame.lis.isMouseEnabled);
-					eachRoomFrame.lis.isMouseEnabled=true;
-					eachRoomFrame.lis.color=true;
-					System.out.println("该用户与标题一致，执笔改变状态为："+eachRoomFrame.lis.isMouseEnabled);
-				}else {
-					System.out.println("该用户与标题不一致，执笔原状态为："+eachRoomFrame.lis.isMouseEnabled);
-					eachRoomFrame.lis.isMouseEnabled=false;
-					eachRoomFrame.lis.color=false;
-					System.out.println("该用户与标题不一致，执笔改变状态为："+eachRoomFrame.lis.isMouseEnabled);
-				}
+				eachRoomFrame.comp1=competeUsers[0];
 			}
-			else eachRoomFrame.chessLeftPanel.label_head1.setText("当前没有人");
+			else 
+			{
+				eachRoomFrame.chessLeftPanel.label_head1.setText("当前没有人");
+			}
 			if (!competeUsers[1].equals("null")) {
 				eachRoomFrame.chessLeftPanel.label_head2.setText("对战方："+competeUsers[1]);
+				eachRoomFrame.comp2=competeUsers[1];
 			}
 			else eachRoomFrame.chessLeftPanel.label_head2.setText("当前没有人");
 		}
@@ -102,11 +97,26 @@ public class EachRoomThread extends Thread{
 //			eachRoomFrame.refresh();
 		}
 		else if (recMessage.startsWith("/play ")) {
-			String result = recMessage.substring("/play ".length()); 
-			if (result.equals("ok")) {
+			String[] result = recMessage.substring("/play ".length()).split(" "); 
+			System.out.println(result[0]+"==="+result[1]);
+			System.out.println("消息为："+recMessage+"该用户为 "+mui.name);
+			if (result[1].equals("ok") && result[0].equals(mui.name)) {
 				System.out.println("用户："+mui.name+"收到/play ok消息原本的isMouseEnabled值为："+eachRoomFrame.lis.isMouseEnabled);
 				eachRoomFrame.lis.isMouseEnabled=true;
 			}
+		}
+		else if (recMessage.startsWith("/prepare ")) {
+			String[] result = recMessage.substring("/prepare ".length()).split(" "); 
+			if (flag==1 && (result[0].equals("null") || result[1].equals("null"))) {
+				System.out.println("该用户与标题一致，执笔原状态为："+eachRoomFrame.lis.isMouseEnabled);
+				eachRoomFrame.lis.isMouseEnabled=true;
+				eachRoomFrame.lis.color=true;
+				System.out.println("该用户与标题一致，执笔改变状态为："+eachRoomFrame.lis.isMouseEnabled);
+				flag=0;
+			}
+//			else if (result[0].equals(mui.name)){
+//				
+//			}
 		}
 	}
 

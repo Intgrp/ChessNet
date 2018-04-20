@@ -297,13 +297,13 @@ public class WZQ_listener extends MouseAdapter{
     			if (array_win[i][j]!=0) {
     				if (array_win[i][j]==1) {
     					g.setColor(Color.BLACK);  
-    					System.out.println("绘制位置坐标：行"+i*40+"列"+j*40);
+    					System.out.println("绘制位置坐标：行"+j*40+"列"+i*40);
     	                g.fillOval(j*40, i*40, Config.Chess_size,  
     	                        Config.Chess_size);  
     				}
     				else if (array_win[i][j]==2) {
     					g.setColor(Color.WHITE);  
-    					System.out.println("绘制位置坐标：行"+i*40+"列"+j*40);
+    					System.out.println("绘制位置坐标：行"+j*40+"列"+i*40);
     	                g.fillOval(j*40, i*40, Config.Chess_size,  
     	                        Config.Chess_size);  
     				}

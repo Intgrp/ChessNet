@@ -73,8 +73,8 @@ class ServerThread extends Thread {
 	Hashtable<Socket, DataOutputStream> clientDataHash;// Socket与发送数据的流的映射
 
 	Hashtable<Socket, String> clientNameHash;// Socket与用户名的映射
-
-	Hashtable<String, String> chessPeerHash;// 对弈的两个客户端用户名的映射,正在下棋，则放进去。这里面没用
+	// 对弈的两个客户端房间号和两个用户名的映射,正在下棋，则放进去。与roomHash一样，只是这里是进入准备状态
+	Hashtable<String, String> chessPeerHash;
 
 	// 每个房间的对弈情况，key为房间号，value为 客户端1，客户端2，逗号隔开
 	// 为正在对战的列表，如果进来时有空的，则直接进入对战人员，如果不空，则进入观战列表
@@ -317,11 +317,39 @@ class ServerThread extends Thread {
 			if (userlist[0].equals(result[1]) && !userlist[1].equals("null")) {
 				//本用户是user0，同时user1有人，不空，那么发送给use1
 				System.out.println("服务器：收到："+message+"消息，获得对战列表："+userlist[0]+","+userlist[1]);
-				peerTalk(userlist[1], "/play ok");
+				peerTalk(userlist[1], "/play "+userlist[1]+" ok");
 			}
 			else if (userlist[1].equals(result[1]) && !userlist[0].equals("null")) {
-				peerTalk(userlist[0], "/play ok");
+				peerTalk(userlist[0], "/play "+userlist[0]+" ok");
 			}
+		}
+		/**
+		 * 开始准备 请求格式：/prepare 房间号 用户名 返回：/prepare user1 user2 
+		 */
+		else if (message.startsWith("/prepare ")) {
+			String[] result = message.substring("/prepare ".length()).split(" "); 
+			if(!chessPeerHash.containsKey(result[0])) {
+				//如果还没有该房间信息，则加进去
+				synchronized (chessPeerHash) {
+					chessPeerHash.put(result[0], result[1]+",null");
+				}
+				Feedback("/prepare "+result[1]+" null");
+			}else {
+				String[] tmp = chessPeerHash.get(result[0]).split(",");
+				synchronized (chessPeerHash) {
+					if (tmp[0].equals("null") && !result[1].equals(tmp[1])) {
+						chessPeerHash.replace(result[0], result[1]+","+tmp[1]);
+						Feedback("/prepare "+result[1]+" "+tmp[1]);
+					}else if (tmp[1].equals("null") && !result[0].equals(tmp[0])) {
+						chessPeerHash.replace(result[0], tmp[0]+","+result[1]);
+						Feedback("/prepare "+tmp[0]+" "+result[1]);
+					}else if (!tmp[0].equals("null") && !tmp[1].equals("null")) {
+						Feedback("/prepare error");
+					}
+				}
+				
+			}
+			
 		}
 	}
 

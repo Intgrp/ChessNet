@@ -59,8 +59,8 @@ public class MainUIThread extends Thread{
 //				mui.mainUIThread.sendMessage("/eachroomuserlist "+mui.roomId);
 				eroomf = new EachRoomChessFrame(mui);
 				eroomf.chessRightPanel.label_user.setText("本人昵称："+mui.name);
-				if (mui.name.equals(mm[1]))
-					eroomf.lis.isMouseEnabled = true;
+//				if (mui.name.equals(mm[1]))
+//					eroomf.lis.isMouseEnabled = true;
 				mui.mframe.setVisible(false);
 			}else if(mm[0].equals("occupy")){
 				//该位置已经有人了，进入观战模式

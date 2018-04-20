@@ -20,7 +20,7 @@ public class ResultFrame extends JFrame{
         this.i = i;  
         this.eChessFrame = eChessFrame;
     }  
-      
+
     /* 
      * 定义一个生成界面的方法 
      */  
@@ -65,6 +65,12 @@ public class ResultFrame extends JFrame{
 			public void actionPerformed(ActionEvent e) {
 				eChessFrame.eachRoomThread.mui.mainUIThread.sendMessage("/leaveroom "+eChessFrame.eachRoomThread.mui.roomId+" "+eChessFrame.eachRoomThread.mui.name);
 				eChessFrame.eachRoomThread.mui.roomId="";
+				for (int i=0;i<eChessFrame.lis.array_win.length;i++) {
+					for (int j=0;j<eChessFrame.lis.array_win.length;j++) {
+						eChessFrame.lis.array_win[i][j]=0;
+					}
+				}
+				eChessFrame.refresh();
 				eChessFrame.eachRoomThread.mui.repaint();//全部设置完图片后刷新界面
 				eChessFrame.eachRoomThread.mui.mframe.setVisible(true);
 				eChessFrame.setVisible(false);

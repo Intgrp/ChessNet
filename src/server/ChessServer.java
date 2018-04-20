@@ -344,12 +344,20 @@ class ServerThread extends Thread {
 						chessPeerHash.replace(result[0], tmp[0]+","+result[1]);
 						Feedback("/prepare "+tmp[0]+" "+result[1]);
 					}else if (!tmp[0].equals("null") && !tmp[1].equals("null")) {
-						Feedback("/prepare error");
+						Feedback("/prepare error ocupy");
 					}
 				}
 				
 			}
 			
+		}
+		else if (message.startsWith("/win ")) {
+			String[] result = message.substring("/win ".length()).split(" ");
+			Iterator<String> tmp = roomUserList.get(result[0]).iterator();
+			String outMesg = "/win " +result[1]+" "+result[2];
+			while (tmp.hasNext()) {
+				peerTalk(tmp.next(), outMesg);
+			}
 		}
 	}
 

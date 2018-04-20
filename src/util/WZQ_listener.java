@@ -82,11 +82,16 @@ public class WZQ_listener extends MouseAdapter{
                 }
                 //通知所有观看用户，更新棋盘
                 if (Win(getXY(y), getXY(x)) == 1) {  
-                    result = new ResultFrame(1,eroomf);  
-                    result.initUI();  
+                	eroomf.eachRoomThread
+                	.sendMessage("/win "+eroomf.eachRoomThread.mui.roomId+" "+eroomf.eachRoomThread.mui.name+" "+eroomf.lis.color);
+                	
+//                    result = new ResultFrame(1,eroomf);  
+//                    result.initUI();  
                 } else if (Win(getXY(y), getXY(x)) == 2) {  
-                    result = new ResultFrame(2, eroomf);  
-                    result.initUI();  
+                	eroomf.eachRoomThread
+                	.sendMessage("/win "+eroomf.eachRoomThread.mui.roomId+" "+eroomf.eachRoomThread.mui.name+" "+eroomf.lis.color);
+//                    result = new ResultFrame(2, eroomf);  
+//                    result.initUI();  
                 }  
             }  
   
